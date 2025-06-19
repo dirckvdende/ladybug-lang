@@ -1,7 +1,7 @@
 
 export { Parser }
 import { Token, TokenType } from "./token.mjs"
-import { ParseNode, ParseNodeType } from "./parsenode.mjs"
+import { ParseNode, NodeType } from "./parsenode.mjs"
 
 class Parser {
 
@@ -38,7 +38,7 @@ class Parser {
             else
                 children.push(this.parseLine())
         }
-        return new ParseNode(ParseNodeType.BLOCK, "", children)
+        return new ParseNode(NodeType.BLOCK, "", children)
     }
 
     private parseLine(): ParseNode {
@@ -55,11 +55,11 @@ class Parser {
     private parseAssign(): ParseNode {
         let left = this.parseSum()
         if (this.accept(TokenType.ASSIGN)) {
-            if (left.type != ParseNodeType.ID)
+            if (left.type != NodeType.ID)
                 throw Error("Assignment requires identifier on the left")
             this.next()
             let right = this.parseAssign()
-            return new ParseNode(ParseNodeType.ASSIGN, left.content, [right])
+            return new ParseNode(NodeType.ASSIGN, left.content, [right])
         }
         return left
     }
@@ -70,11 +70,11 @@ class Parser {
             if (this.accept(TokenType.ADD)) {
                 this.next()
                 let right = this.parseProduct()
-                left = new ParseNode(ParseNodeType.ADD, "", [left, right])
+                left = new ParseNode(NodeType.ADD, "", [left, right])
             } else {
                 this.next()
                 let right = this.parseProduct()
-                left = new ParseNode(ParseNodeType.SUB, "", [left, right])
+                left = new ParseNode(NodeType.SUB, "", [left, right])
             }
         }
         return left
@@ -86,11 +86,11 @@ class Parser {
             if (this.accept(TokenType.MUL)) {
                 this.next()
                 let right = this.parseCall()
-                left = new ParseNode(ParseNodeType.MUL, "", [left, right])
+                left = new ParseNode(NodeType.MUL, "", [left, right])
             } else {
                 this.next()
                 let right = this.parseCall()
-                left = new ParseNode(ParseNodeType.DIV, "", [left, right])
+                left = new ParseNode(NodeType.DIV, "", [left, right])
             }
         }
         return left
@@ -99,15 +99,29 @@ class Parser {
     private parseCall(): ParseNode {
         let left = this.parseAtom()
         if (this.accept(TokenType.LBRACE)) {
-            if (left.type != ParseNodeType.ID)
+            if (left.type != NodeType.ID)
                 throw Error("Function call syntax only on identifiers")
             this.next()
             // TODO: Implement parameters
+            let args = this.parseCallArgs()
             this.expect(TokenType.RBRACE)
             this.next()
-            return new ParseNode(ParseNodeType.CALL, left.content, [])
+            return new ParseNode(NodeType.CALL, left.content, args)
         }
         return left
+    }
+
+    private parseCallArgs(): ParseNode[] {
+        let args: ParseNode[] = []
+        let first = true
+        while (!this.accept(TokenType.RBRACE) && !this.end()) {
+            if (!first) {
+                this.expect(TokenType.COMMA)
+                this.next()
+            }
+            args.push(this.parseExpr())
+        }
+        return args
     }
 
     private parseAtom(): ParseNode {
@@ -119,17 +133,17 @@ class Parser {
             return e
         }
         if (this.accept(TokenType.ID)) {
-            let node = new ParseNode(ParseNodeType.ID, this.cur().content)
+            let node = new ParseNode(NodeType.ID, this.cur().content)
             this.next()
             return node
         }
         if (this.accept(TokenType.NUM)) {
-            let node = new ParseNode(ParseNodeType.NUM, this.cur().content)
+            let node = new ParseNode(NodeType.NUM, this.cur().content)
             this.next()
             return node
         }
         this.expect([TokenType.ID, TokenType.NUM])
-        return new ParseNode(ParseNodeType.ERR)
+        return new ParseNode(NodeType.ERR)
     }
 
     /**

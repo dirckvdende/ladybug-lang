@@ -10,6 +10,7 @@ enum TokenType {
     NUM,
     // Special tokens
     ASSIGN, SEMICOL, LCBRACE, RCBRACE, LBRACE, RBRACE, ADD, SUB, MUL, DIV, MOD,
+    COMMA,
     // Identifiers and keywords
     ID, IF, WHILE,
     // Error token

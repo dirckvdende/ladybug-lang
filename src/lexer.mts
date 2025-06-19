@@ -23,6 +23,7 @@ const specialTokens: Record<string, TokenType | undefined> = {
     "*": TokenType.MUL,
     "/": TokenType.DIV,
     "%": TokenType.MOD,
+    ",": TokenType.COMMA,
 }
 
 /**

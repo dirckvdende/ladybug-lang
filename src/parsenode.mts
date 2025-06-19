@@ -1,10 +1,10 @@
 
-export { ParseNode, ParseNodeType }
+export { ParseNode, NodeType }
 
 /**
  * Type of a node in the parse tree
  */
-enum ParseNodeType {
+enum NodeType {
 
     // Atoms
     ID, NUM,
@@ -27,7 +27,7 @@ enum ParseNodeType {
 class ParseNode {
 
     // The type of the parse node
-    type: ParseNodeType
+    type: NodeType
     // Content of the parse node, empty by default
     content: string
     // Parse node children
@@ -40,7 +40,7 @@ class ParseNode {
      * @param children The children of the parse node (default empty array).
      * Array will always be copied (shallow copy)
      */
-    constructor(type: ParseNodeType, content?: string, children?: ParseNode[]) {
+    constructor(type: NodeType, content?: string, children?: ParseNode[]) {
         this.type = type
         this.content = content ?? ""
         this.children = children == undefined ? [] : children.slice()
