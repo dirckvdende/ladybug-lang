@@ -7,9 +7,10 @@ export { ParseNode, NodeType }
 enum NodeType {
 
     // Atoms
-    ID, NUM,
-    // Operators
-    ASSIGN, ADD, SUB, MUL, DIV, MOD,
+    ID, NUM, STR,
+    // Assignment operators
+    ASSIGN, ASSIGN_ADD, ASSIGN_SUB, ASSIGN_MUL, ASSIGN_DIV, ASSIGN_MOD,
+    ADD, SUB, MUL, DIV, MOD,
     // Control flow
     IF, WHILE,
     // Function calls (with parameters as children)

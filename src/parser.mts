@@ -3,6 +3,10 @@ export { Parser }
 import { Token, TokenType } from "./token.mjs"
 import { ParseNode, NodeType } from "./parsenode.mjs"
 
+/**
+ * Class to parse an array of tokens to a parse tree. Uses recursive descent for
+ * the parsing
+ */
 class Parser {
 
     // Input tokens
@@ -42,10 +46,54 @@ class Parser {
     }
 
     private parseLine(): ParseNode {
+        if (this.accept(TokenType.IF))
+            return this.parseIf()
+        if (this.accept(TokenType.WHILE))
+            return this.parseWhile()
         let e = this.parseExpr()
         this.expect(TokenType.SEMICOL)
         this.next()
         return e
+    }
+
+    private parseIf(): ParseNode {
+        this.expect(TokenType.IF)
+        this.next()
+        this.expect(TokenType.LBRACE)
+        this.next()
+        let condition = this.parseExpr()
+        this.expect(TokenType.RBRACE)
+        this.next()
+        let block = this.parseLineOrBlock()
+        if (this.accept(TokenType.ELSE)) {
+            this.next();
+            let elseBlock = this.parseLineOrBlock()
+            return new ParseNode(NodeType.IF, "", [condition, block, elseBlock])
+        }
+        return new ParseNode(NodeType.IF, "", [condition, block])
+    }
+
+    private parseWhile(): ParseNode {
+        this.expect(TokenType.WHILE)
+        this.next()
+        this.expect(TokenType.LBRACE)
+        this.next()
+        let condition = this.parseExpr()
+        this.expect(TokenType.RBRACE)
+        this.next()
+        let block = this.parseLineOrBlock()
+        return new ParseNode(NodeType.WHILE, "", [condition, block])
+    }
+
+    private parseLineOrBlock(): ParseNode {
+        if (this.accept(TokenType.LCBRACE)) {
+            this.next()
+            let block = this.parseBlock()
+            this.expect(TokenType.RCBRACE)
+            this.next()
+            return block
+        }
+        return this.parseLine()
     }
 
     private parseExpr(): ParseNode {
@@ -132,18 +180,18 @@ class Parser {
             this.next()
             return e
         }
-        if (this.accept(TokenType.ID)) {
-            let node = new ParseNode(NodeType.ID, this.cur().content)
-            this.next()
-            return node
-        }
-        if (this.accept(TokenType.NUM)) {
-            let node = new ParseNode(NodeType.NUM, this.cur().content)
-            this.next()
-            return node
-        }
-        this.expect([TokenType.ID, TokenType.NUM])
-        return new ParseNode(NodeType.ERR)
+        this.expect([TokenType.ID, TokenType.NUM, TokenType.STR])
+        let tokenType = this.cur().type
+        let nodeType: NodeType
+        if (tokenType == TokenType.ID)
+            nodeType = NodeType.ID
+        else if (tokenType == TokenType.NUM)
+            nodeType = NodeType.NUM
+        else
+            nodeType = NodeType.STR
+        let node = new ParseNode(nodeType, this.cur().content)
+        this.next()
+        return node
     }
 
     /**

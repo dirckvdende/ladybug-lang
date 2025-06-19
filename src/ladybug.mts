@@ -1,5 +1,5 @@
 
-export { Ladybug }
+export { Ladybug, ReturnValue, ValueType }
 import { Lexer } from "./lexer.mjs"
 import { Parser } from "./parser.mjs"
 import { Dict } from "./dict.mjs"

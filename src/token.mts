@@ -7,12 +7,23 @@ export { TokenType, Token }
 enum TokenType {
 
     // Constants
-    NUM,
-    // Special tokens
-    ASSIGN, SEMICOL, LCBRACE, RCBRACE, LBRACE, RBRACE, ADD, SUB, MUL, DIV, MOD,
-    COMMA,
+    NUM, STR,
     // Identifiers and keywords
-    ID, IF, WHILE,
+    ID, IF, ELSE, WHILE, FUNCTION,
+
+    // Assignment operators
+    ASSIGN, ASSIGN_ADD, ASSIGN_SUB, ASSIGN_MUL, ASSIGN_DIV, ASSIGN_MOD,
+    // Delimiters
+    COMMA, SEMICOL,
+    // Braces
+    LCBRACE, RCBRACE, LBRACE, RBRACE,
+    // Arithmetic operators
+    ADD, SUB, MUL, DIV, MOD,
+    // Logical operators
+    AND, OR, NOT,
+    // Comparison operators
+    EQ, NEQ, LT, LTE, GT, GTE,
+
     // Error token
     ERR,
 

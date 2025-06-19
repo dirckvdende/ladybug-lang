@@ -5,24 +5,31 @@ import { Token, TokenType } from "./token.mjs"
 // Mapping of keywords to their token types
 const keywords: Record<string, TokenType | undefined> = {
     "if": TokenType.IF,
+    "else": TokenType.ELSE,
     "while": TokenType.WHILE,
+    "function": TokenType.FUNCTION,
 }
 
 // Mapping of special tokens to their respective token types. If a certain
 // string is a key in this mapping, every non-empty prefix needs to be a key as
-// well
+// well (possibly mapping to an error type)
 const specialTokens: Record<string, TokenType | undefined> = {
-    "=": TokenType.ASSIGN,
+    "=": TokenType.ASSIGN, "==": TokenType.EQ,
     ";": TokenType.SEMICOL,
     "{": TokenType.LCBRACE,
     "}": TokenType.RCBRACE,
     "(": TokenType.LBRACE,
     ")": TokenType.RBRACE,
-    "+": TokenType.ADD,
-    "-": TokenType.SUB,
-    "*": TokenType.MUL,
-    "/": TokenType.DIV,
-    "%": TokenType.MOD,
+    "+": TokenType.ADD, "+=": TokenType.ASSIGN_ADD,
+    "-": TokenType.SUB, "-=": TokenType.ASSIGN_SUB,
+    "*": TokenType.MUL, "*=": TokenType.ASSIGN_MUL,
+    "/": TokenType.DIV, "/=": TokenType.ASSIGN_DIV,
+    "%": TokenType.MOD, "%=": TokenType.ASSIGN_MOD,
+    "&": TokenType.ERR, "&&": TokenType.AND,
+    "|": TokenType.ERR, "||": TokenType.OR,
+    "!": TokenType.NOT, "!=": TokenType.NEQ,
+    "<": TokenType.LT, "<=": TokenType.LTE,
+    ">": TokenType.GT, ">=": TokenType.GTE,
     ",": TokenType.COMMA,
 }
 
@@ -58,6 +65,8 @@ class Lexer {
                 this.next()
             } else if (this.isNum(this.cur())) {
                 this.readNum()
+            } else if (this.cur() == "'" || this.cur() == "\"") {
+                this.readString()
             } else {
                 this.readSpecialToken()
             }
@@ -104,7 +113,47 @@ class Lexer {
             content += this.next()
         if (content == "")
             throw Error(`Unexpected character ${this.cur()}`)
-        this.tokens.push(new Token(specialTokens[content]!, ""))
+        let type = specialTokens[content]!
+        if (type == TokenType.ERR)
+            throw Error(`Undefined token ${content}`)
+        this.tokens.push(new Token(type, ""))
+    }
+
+    /**
+     * Read a string constant from the opening quote, which can be ' or "
+     */
+    private readString() {
+        let delim = this.cur()
+        this.next()
+        let content = ""
+        while (!this.end() && this.cur() != delim) {
+            if (this.cur() == "\\") {
+                this.next()
+                if (!this.end())
+                    content += this.escapeChar(this.cur())
+            } else {
+                content += this.cur()
+            }
+            this.next()
+        }
+        if (this.end())
+            throw Error("String not closed before end of file")
+        this.tokens.push(new Token(TokenType.STR, content))
+    }
+
+    /**
+     * Converts an "escape character" to an actual character. For example n
+     * (from \n) will be converted to a newline. Characters that are not escape
+     * characters are returned unaltered
+     * @param char The escape character
+     * @returns The actual character
+     */
+    private escapeChar(char: string): string {
+        if (char == "n")
+            return "\n"
+        if (char == "t")
+            return "\t"
+        return char
     }
 
     /**
