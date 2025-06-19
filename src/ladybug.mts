@@ -65,6 +65,13 @@ class Ladybug {
                 for (let child of node.children)
                     args.push(this.executeNode(child))
                 return this.handles.get(node.content)(args)
+            case NodeType.ADD:
+                let left = this.executeNode(node.children[0])
+                let right = this.executeNode(node.children[1])
+                if (left.type != ValueType.NUM || right.type != ValueType.NUM)
+                    throw Error("Cannot add non-numeric types")
+                return new ReturnValue(ValueType.NUM, String(Number(
+                left.content) + Number(right.content)))
             default:
                 throw Error("Unimplemented")
         }
@@ -77,4 +84,4 @@ lb.handles.add("print", (x: ReturnValue[]) => {
     console.log(x[0].content)
     return new ReturnValue()
 })
-lb.execute("x = 10; print(x);")
+lb.execute("x = 10; print(x + 3);")
