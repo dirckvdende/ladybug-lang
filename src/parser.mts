@@ -75,7 +75,7 @@ class Parser {
      */
     private parseLineOrBlock(forceBraces: boolean = false): ParseNode {
         if (forceBraces)
-            this.expect(TokenType.LBRACE)
+            this.expect(TokenType.LCBRACE)
         if (this.accept(TokenType.LCBRACE)) {
             this.next()
             let block = this.parseBlock()
@@ -198,7 +198,7 @@ class Parser {
             [TokenType.ASSIGN_MUL, NodeType.ASSIGN_MUL],
             [TokenType.ASSIGN_DIV, NodeType.ASSIGN_DIV],
             [TokenType.ASSIGN_MOD, NodeType.ASSIGN_MOD],
-        ], this.parseOr, (node: ParseNode) => {
+        ], () => this.parseOr(), (node: ParseNode) => {
             if (node.children[0].type != NodeType.ID)
                 throw Error("Assignment requires identifier on the left")
         })
@@ -211,7 +211,7 @@ class Parser {
     private parseOr(): ParseNode {
         return this.parseBinaryLeft([
             [TokenType.OR, NodeType.OR],
-        ], this.parseAnd)
+        ], () => this.parseAnd())
     }
 
     /**
@@ -221,7 +221,7 @@ class Parser {
     private parseAnd(): ParseNode {
         return this.parseBinaryLeft([
             [TokenType.AND, NodeType.AND],
-        ], this.parseEq)
+        ], () => this.parseEq())
     }
 
     /**
@@ -232,7 +232,7 @@ class Parser {
         return this.parseBinaryLeft([
             [TokenType.EQ, NodeType.EQ],
             [TokenType.NEQ, NodeType.NEQ],
-        ], this.parseIneq)
+        ], () => this.parseIneq())
     }
 
     /**
@@ -245,7 +245,7 @@ class Parser {
             [TokenType.LTE, NodeType.LTE],
             [TokenType.GT, NodeType.GT],
             [TokenType.GTE, NodeType.GTE],
-        ], this.parseSum)
+        ], () => this.parseSum())
     }
 
     /**
@@ -256,7 +256,7 @@ class Parser {
         return this.parseBinaryLeft([
             [TokenType.ADD, NodeType.ADD],
             [TokenType.SUB, NodeType.SUB],
-        ], this.parseProduct)
+        ], () => this.parseProduct())
     }
 
     /**
@@ -268,7 +268,7 @@ class Parser {
             [TokenType.MUL, NodeType.MUL],
             [TokenType.DIV, NodeType.DIV],
             [TokenType.MOD, NodeType.MOD],
-        ], this.parseUnary)
+        ], () => this.parseUnary())
     }
 
     /**
@@ -462,7 +462,7 @@ class Parser {
         if (!(type instanceof Array))
             type = [type]
         for (let t of type)
-            if (this.accept(t))
+            if (this.cur().type == t)
                 return true
         return false
     }

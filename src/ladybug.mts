@@ -5,6 +5,7 @@ import { Parser } from "./parser.mjs"
 import { Dict } from "./dict.mjs"
 import { NodeType, ParseNode } from "./parsenode.mjs"
 import { ReturnValue, ValueType } from "./returnvalue.mjs"
+import { CallStack } from "./callstack.mjs"
 
 /**
  * The global interpreter class for running ladybug code and managing handles
@@ -14,8 +15,12 @@ class Ladybug {
     // Handles for functions which can be called from inside the ladybug code,
     // and cannot be overwritten
     handles: Dict<string, (x: ReturnValue[]) => ReturnValue> = new Dict()
-    // Stored global variable values
-    private vars: Dict<string, ReturnValue> = new Dict()
+    // Call stack of functions and variables
+    private callStack: CallStack = new CallStack()
+    // Indicates if the current function has returned and nothing more should
+    // be executed. If it is undefined, nothing has been returned. If it
+    // contains a value a return has happened
+    private returnedValue: ReturnValue | undefined = undefined
 
     /**
      * Constructor
@@ -32,7 +37,8 @@ class Ladybug {
         let lexer = new Lexer()
         lexer.read(code)
         let parser = new Parser()
-        this.executeNode(parser.parse(lexer.tokens))
+        let root = parser.parse(lexer.tokens)
+        this.executeNode(root)
     }
 
     /**
@@ -41,6 +47,8 @@ class Ladybug {
      * @returns The return value of the code
      */
     private executeNode(node: ParseNode): ReturnValue {
+        if (this.returnedValue != undefined)
+            return new ReturnValue()
         switch (node.type) {
             case NodeType.BLOCK:
                 this.executeBlock(node)
@@ -114,19 +122,64 @@ class Ladybug {
     }
 
     private registerFunction(node: ParseNode) {
-
+        let name = node.content.split("(", 1)[0]
+        if (this.handles.has(name))
+            throw Error(`The name ${name} is reserved by a handle`)
+        this.callStack.set(name, node)
     }
 
     private executeCall(node: ParseNode): ReturnValue {
+        if (this.handles.has(node.content))
+            return this.executeHandleCall(node)
+        let func = this.callStack.get(node.content)
+        if (!(func instanceof ParseNode))
+            throw Error(`${node.content} is not a function`)
+        let paramNames = func.content.split("(")[1].slice(0, -1).split(",")
+        let params = node.children
+        if (paramNames.length != params.length)
+            throw Error("Number of parameters does not match expected number")
+        let values: ReturnValue[] = []
+        for (let param of params)
+            values.push(this.executeNode(param))
+        this.callStack.pushFrame()
+        // Set up parameter values
+        for (let i = 0; i < params.length; i++) {
+            if (values[i] instanceof ParseNode)
+                throw Error("Cannot pass a function as a parameter")
+            this.callStack.set(paramNames[i], values[i])
+        }
+        // Call function body
+        this.executeNode(func.children[0])
+        this.callStack.popFrame()
+        let ret = this.returnedValue
+        this.returnedValue = undefined
+        return ret == undefined ? new ReturnValue() : ret
+    }
 
+    private executeHandleCall(node: ParseNode): ReturnValue {
+        let handle = this.handles.get(node.content)
+        // Set up parameter values
+        let values: ReturnValue[] = []
+        for (let child of node.children)
+            values.push(this.executeNode(child))
+        return handle(values)
     }
 
     private executeReturn(node: ParseNode) {
-
+        let value = new ReturnValue()
+        if (node.children.length > 0)
+            value = this.executeNode(node.children[0])
+        this.returnedValue = value
     }
 
     private executeAssign(node: ParseNode): ReturnValue {
-
+        // TODO: Compound assignments
+        let varName = node.children[0].content
+        if (this.handles.has(varName))
+            throw Error(`The name ${varName} is reserved by a handle`)
+        let right = this.executeNode(node.children[1])
+        this.callStack.set(varName, right)
+        return right
     }
 
     private executeAndOr(node: ParseNode): ReturnValue {
@@ -233,7 +286,11 @@ class Ladybug {
     private executeAtom(node: ParseNode): ReturnValue {
         switch (node.type) {
             case NodeType.ID:
-                // TODO ...
+                let value = this.callStack.get(node.content)
+                if (!(value instanceof ReturnValue))
+                    throw Error("Cannot use function in expression without " +
+                    "calling it")
+                return value
             case NodeType.NUM:
                 return new ReturnValue(ValueType.NUM, node.content)
             case NodeType.STR:
@@ -256,8 +313,15 @@ class Ladybug {
 }
 
 let lb = new Ladybug()
-lb.handles.add("print", (x: ReturnValue[]) => {
+lb.handles.add("print", (x: ReturnValue[]): ReturnValue => {
     console.log(x[0].content)
     return new ReturnValue()
 })
-lb.execute("x = 10; print(x + 3);")
+lb.execute(`
+    function fib(x) {
+        if (x > 2)
+            return fib(x - 1) + fib(x - 2)
+        return 1
+    }
+    print(fib(9));
+`)
