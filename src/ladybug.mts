@@ -103,11 +103,19 @@ class Ladybug {
         }
     }
 
+    /**
+     * Execute a block node
+     * @param node The node to execute
+     */
     private executeBlock(node: ParseNode) {
         for (let child of node.children)
             this.executeNode(child)
     }
 
+    /**
+     * Execute a if node
+     * @param node The node to execute
+     */
     private executeIf(node: ParseNode) {
         let condition = this.executeNode(node.children[0])
         if (this.isTruthy(condition))
@@ -116,11 +124,19 @@ class Ladybug {
             this.executeNode(node.children[2])
     }
 
+    /**
+     * Execute a while node
+     * @param node The node to execute
+     */
     private executeWhile(node: ParseNode) {
         while (this.isTruthy(this.executeNode(node.children[0])))
             this.executeNode(node.children[1])
     }
 
+    /**
+     * Try to register a function given by a node
+     * @param node The node of the function definition
+     */
     private registerFunction(node: ParseNode) {
         let name = node.content.split("(", 1)[0]
         if (this.handles.has(name))
@@ -128,6 +144,10 @@ class Ladybug {
         this.callStack.set(name, node)
     }
 
+    /**
+     * Execute a function call
+     * @param node The node to execute
+     */
     private executeCall(node: ParseNode): ReturnValue {
         if (this.handles.has(node.content))
             return this.executeHandleCall(node)
@@ -156,6 +176,10 @@ class Ladybug {
         return ret == undefined ? new ReturnValue() : ret
     }
 
+    /**
+     * Execute a function call, which is registered as a handle
+     * @param node The node to execute
+     */
     private executeHandleCall(node: ParseNode): ReturnValue {
         let handle = this.handles.get(node.content)
         // Set up parameter values
@@ -165,6 +189,10 @@ class Ladybug {
         return handle(values)
     }
 
+    /**
+     * Execute a return node
+     * @param node The node to execute
+     */
     private executeReturn(node: ParseNode) {
         let value = new ReturnValue()
         if (node.children.length > 0)
@@ -172,6 +200,10 @@ class Ladybug {
         this.returnedValue = value
     }
 
+    /**
+     * Execute an assignment node
+     * @param node The node to execute
+     */
     private executeAssign(node: ParseNode): ReturnValue {
         // TODO: Compound assignments
         let varName = node.children[0].content
@@ -182,6 +214,10 @@ class Ladybug {
         return right
     }
 
+    /**
+     * Execute an AND/OR node
+     * @param node The node to execute
+     */
     private executeAndOr(node: ParseNode): ReturnValue {
         let left = this.isTruthy(this.executeNode(node.children[0]))
         if (!left && node.type == NodeType.AND)
@@ -192,11 +228,19 @@ class Ladybug {
         return new ReturnValue(ValueType.NUM, right ? "1" : "0")
     }
 
+    /**
+     * Execute a NOT node
+     * @param node The node to execute
+     */
     private executeNot(node: ParseNode): ReturnValue {
         let child = this.isTruthy(this.executeNode(node.children[0]))
         return new ReturnValue(ValueType.NUM, child ? "0" : "1")
     }
 
+    /**
+     * Execute a comparison (>, <=, etc. but not == or !=) node
+     * @param node The node to execute
+     */
     private executeCompare(node: ParseNode): ReturnValue {
         let comp: (x: number, y: number) => boolean
         switch (node.type) {
@@ -227,6 +271,10 @@ class Ladybug {
         return new ReturnValue(ValueType.NUM, comp(x, y) ? "1" : "0")
     }
 
+    /**
+     * Execute an equality comparison node
+     * @param node The node to execute
+     */
     private executeEq(node: ParseNode): ReturnValue {
         let left = this.executeNode(node.children[0])
         let right = this.executeNode(node.children[1])
@@ -240,6 +288,10 @@ class Ladybug {
         return new ReturnValue(ValueType.NUM, result ? "1" : "0")
     }
 
+    /**
+     * Execute a binary arithmetic node
+     * @param node The node to execute
+     */
     private executeBinaryArith(node: ParseNode): ReturnValue {
         let left = this.executeNode(node.children[0])
         let right = this.executeNode(node.children[1])
@@ -276,6 +328,10 @@ class Ladybug {
         return new ReturnValue(ValueType.NUM, String(op(x, y)))
     }
 
+    /**
+     * Execute a negation node
+     * @param node The node to execute
+     */
     private executeNeg(node: ParseNode): ReturnValue {
         let child = this.executeNode(node.children[0])
         if (child.type != ValueType.NUM)
@@ -283,6 +339,10 @@ class Ladybug {
         return new ReturnValue(ValueType.NUM, String(-Number(child.content)))
     }
 
+    /**
+     * Execute a atom node, i.e. identifiers, numbers, strings
+     * @param node The node to execute
+     */
     private executeAtom(node: ParseNode): ReturnValue {
         switch (node.type) {
             case NodeType.ID:
