@@ -1,6 +1,6 @@
 {
     "compilerOptions": {
-        "module": "CommonJS",
+        "module": "nodenext",
         "noImplicitAny": true,
         "removeComments": true,
         "preserveConstEnums": true,
@@ -15,5 +15,5 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true
     },
-    "include": ["src/**/*"]
+    "include": ["src/**/*", "tests/**/*"]
 }
