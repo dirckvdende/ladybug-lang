@@ -101,11 +101,16 @@ class Ladybug {
     }
 
     private executeIf(node: ParseNode) {
-
+        let condition = this.executeNode(node.children[0])
+        if (this.isTruthy(condition))
+            this.executeNode(node.children[1])
+        else if (node.children.length > 2)
+            this.executeNode(node.children[2])
     }
 
     private executeWhile(node: ParseNode) {
-
+        while (this.isTruthy(this.executeNode(node.children[0])))
+            this.executeNode(node.children[1])
     }
 
     private registerFunction(node: ParseNode) {
@@ -125,27 +130,127 @@ class Ladybug {
     }
 
     private executeAndOr(node: ParseNode): ReturnValue {
-
+        let left = this.isTruthy(this.executeNode(node.children[0]))
+        if (!left && node.type == NodeType.AND)
+            return new ReturnValue(ValueType.NUM, "0")
+        if (left && node.type == NodeType.OR)
+            return new ReturnValue(ValueType.NUM, "1")
+        let right = this.isTruthy(this.executeNode(node.children[1]))
+        return new ReturnValue(ValueType.NUM, right ? "1" : "0")
     }
 
     private executeNot(node: ParseNode): ReturnValue {
-
+        let child = this.isTruthy(this.executeNode(node.children[0]))
+        return new ReturnValue(ValueType.NUM, child ? "0" : "1")
     }
 
     private executeCompare(node: ParseNode): ReturnValue {
+        let comp: (x: number, y: number) => boolean
+        switch (node.type) {
+            case NodeType.EQ:
+            case NodeType.NEQ:
+                return this.executeEq(node)
+            case NodeType.LT:
+                comp = (x, y) => x < y
+                break
+            case NodeType.LTE:
+                comp = (x, y) => x <= y
+                break
+            case NodeType.GT:
+                comp = (x, y) => x > y
+                break
+            case NodeType.GTE:
+                comp = (x, y) => x >= y
+                break
+            default:
+                comp = () => false
+        }
+        let left = this.executeNode(node.children[0])
+        let right = this.executeNode(node.children[1])
+        if (left.type != ValueType.NUM || right.type != ValueType.NUM)
+            throw Error("Cannot compare non-numeric types")
+        let x = Number(left.content)
+        let y = Number(right.content)
+        return new ReturnValue(ValueType.NUM, comp(x, y) ? "1" : "0")
+    }
 
+    private executeEq(node: ParseNode): ReturnValue {
+        let left = this.executeNode(node.children[0])
+        let right = this.executeNode(node.children[1])
+        if (left.type != right.type)
+            return new ReturnValue(ValueType.NUM, "0")
+        let result = false
+        if (left.type == ValueType.NUM)
+            result = Number(left.content) == Number(right.content)
+        else
+            result = left.content == right.content
+        return new ReturnValue(ValueType.NUM, result ? "1" : "0")
     }
 
     private executeBinaryArith(node: ParseNode): ReturnValue {
-
+        let left = this.executeNode(node.children[0])
+        let right = this.executeNode(node.children[1])
+        if (node.type == NodeType.ADD && (left.type == ValueType.STR ||
+        right.type == ValueType.STR)) {
+            if (left.type != ValueType.STR || right.type != ValueType.STR)
+                throw Error("Cannot concatenate non-string and string")
+            return new ReturnValue(ValueType.STR, left.content + right.content)
+        }
+        if (left.type != ValueType.NUM || right.type != ValueType.NUM)
+            throw Error("Cannot perform arithmatic on non-number type")
+        let op: (x: number, y: number) => number
+        switch (node.type) {
+            case NodeType.ADD:
+                op = (x, y) => x + y
+                break
+            case NodeType.SUB:
+                op = (x, y) => x - y
+                break
+            case NodeType.MUL:
+                op = (x, y) => x * y
+                break
+            case NodeType.DIV:
+                op = (x, y) => x / y
+                break
+            case NodeType.MOD:
+                op = (x, y) => x % y
+                break
+            default:
+                op = () => 0
+        }
+        let x = Number(left.content)
+        let y = Number(right.content)
+        return new ReturnValue(ValueType.NUM, String(op(x, y)))
     }
 
     private executeNeg(node: ParseNode): ReturnValue {
-
+        let child = this.executeNode(node.children[0])
+        if (child.type != ValueType.NUM)
+            throw Error("Cannot negate non-numeric type")
+        return new ReturnValue(ValueType.NUM, String(-Number(child.content)))
     }
 
     private executeAtom(node: ParseNode): ReturnValue {
+        switch (node.type) {
+            case NodeType.ID:
+                // TODO ...
+            case NodeType.NUM:
+                return new ReturnValue(ValueType.NUM, node.content)
+            case NodeType.STR:
+                return new ReturnValue(ValueType.STR, node.content)
+            default:
+                throw Error("Unexpected node type")
+        }
+    }
 
+    /**
+     * Check if a certain return value is truthy (i.e. evaluated to true if
+     * converted to a boolean)
+     * @param value The return value to check
+     * @returns If the value is truthy
+     */
+    private isTruthy(value: ReturnValue): boolean {
+        return !(value.type == ValueType.NUM && Number(value.content) == 0)
     }
 
 }

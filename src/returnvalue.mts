@@ -9,6 +9,8 @@ enum ValueType {
 
     // Numbers
     NUM,
+    // Strings
+    STR,
     // No-return
     VOID,
 
