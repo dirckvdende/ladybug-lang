@@ -43,38 +43,109 @@ class Ladybug {
     private executeNode(node: ParseNode): ReturnValue {
         switch (node.type) {
             case NodeType.BLOCK:
-                for (let child of node.children)
-                    this.executeNode(child)
+                this.executeBlock(node)
+                return new ReturnValue()
+            case NodeType.IF:
+                this.executeIf(node)
+                return new ReturnValue()
+            case NodeType.WHILE:
+                this.executeWhile(node)
+                return new ReturnValue()
+            case NodeType.RETURN:
+                this.executeReturn(node)
+                return new ReturnValue()
+            case NodeType.FUNCTION:
+                this.registerFunction(node)
                 return new ReturnValue()
             case NodeType.ASSIGN:
-                let rv = this.executeNode(node.children[0])
-                this.vars.set(node.content, rv)
-                return rv
-            case NodeType.NUM:
-                return new ReturnValue(ValueType.NUM, node.content)
+            case NodeType.ASSIGN_ADD:
+            case NodeType.ASSIGN_SUB:
+            case NodeType.ASSIGN_MUL:
+            case NodeType.ASSIGN_DIV:
+            case NodeType.ASSIGN_MOD:
+                return this.executeAssign(node)
             case NodeType.ID:
-                if (!this.vars.has(node.content))
-                    throw Error(`Variable ${node.content} does not have a ` +
-                    `value`)
-                return this.vars.get(node.content)
+            case NodeType.NUM:
+            case NodeType.STR:
+                return this.executeAtom(node)
             case NodeType.CALL:
-                // TODO: Implement user-defined functions
-                if (!this.handles.has(node.content))
-                    throw Error(`Function ${node.content} is undefined`)
-                let args: ReturnValue[] = []
-                for (let child of node.children)
-                    args.push(this.executeNode(child))
-                return this.handles.get(node.content)(args)
+                return this.executeCall(node)
             case NodeType.ADD:
-                let left = this.executeNode(node.children[0])
-                let right = this.executeNode(node.children[1])
-                if (left.type != ValueType.NUM || right.type != ValueType.NUM)
-                    throw Error("Cannot add non-numeric types")
-                return new ReturnValue(ValueType.NUM, String(Number(
-                left.content) + Number(right.content)))
+            case NodeType.SUB:
+            case NodeType.MUL:
+            case NodeType.DIV:
+            case NodeType.MOD:
+                return this.executeBinaryArith(node)
+            case NodeType.AND:
+            case NodeType.OR:
+                return this.executeAndOr(node)
+            case NodeType.EQ:
+            case NodeType.NEQ:
+            case NodeType.LT:
+            case NodeType.LTE:
+            case NodeType.GT:
+            case NodeType.GTE:
+                return this.executeCompare(node)
+            case NodeType.NEG:
+                return this.executeNeg(node)
+            case NodeType.NOT:
+                return this.executeNot(node)
             default:
                 throw Error("Unimplemented")
         }
+    }
+
+    private executeBlock(node: ParseNode) {
+        for (let child of node.children)
+            this.executeNode(child)
+    }
+
+    private executeIf(node: ParseNode) {
+
+    }
+
+    private executeWhile(node: ParseNode) {
+
+    }
+
+    private registerFunction(node: ParseNode) {
+
+    }
+
+    private executeCall(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeReturn(node: ParseNode) {
+
+    }
+
+    private executeAssign(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeAndOr(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeNot(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeCompare(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeBinaryArith(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeNeg(node: ParseNode): ReturnValue {
+
+    }
+
+    private executeAtom(node: ParseNode): ReturnValue {
+
     }
 
 }
