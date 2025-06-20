@@ -1,4 +1,5 @@
 
+import { exit } from "process"
 import { Ladybug, ReturnValue, ValueType } from "../src/ladybug.mjs"
 import fs = require("fs")
 
@@ -46,9 +47,12 @@ if (failures == 0) {
     console.log()
     console.log("\u001b[32m---------------------------------------------------")
     console.log(`\u001b[32m ALL ${failures + successes} TESTS PASSED`)
+    console.log()
 } else {
     console.log()
     console.log("\u001b[31m---------------------------------------------------")
     console.log(`\u001b[31m ${failures} OUT OF ${failures + successes} TESTS ` +
     `FAILED`)
+    console.log()
+    exit(1)
 }
