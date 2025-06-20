@@ -45,6 +45,11 @@ class Parser {
         return new ParseNode(NodeType.BLOCK, "", children)
     }
 
+    /**
+     * Parse a "line" of code, which can be an if statement, while loop,
+     * expression with a semicolon at the end, function definition
+     * @returns The root of the generated subtree
+     */
     private parseLine(): ParseNode {
         if (this.accept(TokenType.IF))
             return this.parseIf()
@@ -56,6 +61,30 @@ class Parser {
         return e
     }
 
+    /**
+     * Parse either a code block with curly braces around it, or a single. This
+     * is used for example after an if or while
+     * @param forceBraces Whether to require curly braces to be used, for
+     * example in function definitions
+     * @returns The root of the generated subtree
+     */
+    private parseLineOrBlock(forceBraces: boolean = false): ParseNode {
+        if (forceBraces)
+            this.expect(TokenType.LBRACE)
+        if (this.accept(TokenType.LCBRACE)) {
+            this.next()
+            let block = this.parseBlock()
+            this.expect(TokenType.RCBRACE)
+            this.next()
+            return block
+        }
+        return this.parseLine()
+    }
+
+    /**
+     * Parse an if(-else) statement
+     * @returns The root of the generated subtree
+     */
     private parseIf(): ParseNode {
         this.expect(TokenType.IF)
         this.next()
@@ -73,6 +102,10 @@ class Parser {
         return new ParseNode(NodeType.IF, "", [condition, block])
     }
 
+    /**
+     * Parse a while loop
+     * @returns The root of the generated subtree
+     */
     private parseWhile(): ParseNode {
         this.expect(TokenType.WHILE)
         this.next()
@@ -85,65 +118,60 @@ class Parser {
         return new ParseNode(NodeType.WHILE, "", [condition, block])
     }
 
-    private parseLineOrBlock(): ParseNode {
-        if (this.accept(TokenType.LCBRACE)) {
-            this.next()
-            let block = this.parseBlock()
-            this.expect(TokenType.RCBRACE)
-            this.next()
-            return block
-        }
-        return this.parseLine()
-    }
-
+    /**
+     * Parse an expression
+     * @returns The root of the generated subtree
+     */
     private parseExpr(): ParseNode {
         return this.parseAssign()
     }
 
+    /**
+     * Parse an assignment expression, which can be a simple assignment or an
+     * assignment with an operation
+     * @returns The root of the generated subtree
+     */
     private parseAssign(): ParseNode {
-        let left = this.parseSum()
-        if (this.accept(TokenType.ASSIGN)) {
-            if (left.type != NodeType.ID)
+        return this.parseBinaryRight([
+            [TokenType.ASSIGN, NodeType.ASSIGN],
+            [TokenType.ASSIGN_ADD, NodeType.ASSIGN_ADD],
+            [TokenType.ASSIGN_SUB, NodeType.ASSIGN_SUB],
+            [TokenType.ASSIGN_MUL, NodeType.ASSIGN_MUL],
+            [TokenType.ASSIGN_DIV, NodeType.ASSIGN_DIV],
+            [TokenType.ASSIGN_MOD, NodeType.ASSIGN_MOD],
+        ], this.parseSum, (node: ParseNode) => {
+            if (node.children[0].type != NodeType.ID)
                 throw Error("Assignment requires identifier on the left")
-            this.next()
-            let right = this.parseAssign()
-            return new ParseNode(NodeType.ASSIGN, left.content, [right])
-        }
-        return left
+        })
     }
 
+    /**
+     * Parse a sum expression with addition and subtraction
+     * @returns The root of the generated subtree
+     */
     private parseSum(): ParseNode {
-        let left = this.parseProduct()
-        while (this.accept(TokenType.ADD) || this.accept(TokenType.SUB)) {
-            if (this.accept(TokenType.ADD)) {
-                this.next()
-                let right = this.parseProduct()
-                left = new ParseNode(NodeType.ADD, "", [left, right])
-            } else {
-                this.next()
-                let right = this.parseProduct()
-                left = new ParseNode(NodeType.SUB, "", [left, right])
-            }
-        }
-        return left
+        return this.parseBinaryLeft([
+            [TokenType.ADD, NodeType.ADD],
+            [TokenType.SUB, NodeType.SUB],
+        ], this.parseProduct)
     }
 
+    /**
+     * Parse a product expression with multiplication, division, and modulo
+     * @returns The root of the generated subtree
+     */
     private parseProduct(): ParseNode {
-        let left = this.parseCall()
-        while (this.accept(TokenType.MUL) || this.accept(TokenType.DIV)) {
-            if (this.accept(TokenType.MUL)) {
-                this.next()
-                let right = this.parseCall()
-                left = new ParseNode(NodeType.MUL, "", [left, right])
-            } else {
-                this.next()
-                let right = this.parseCall()
-                left = new ParseNode(NodeType.DIV, "", [left, right])
-            }
-        }
-        return left
+        return this.parseBinaryLeft([
+            [TokenType.MUL, NodeType.MUL],
+            [TokenType.DIV, NodeType.DIV],
+            [TokenType.MOD, NodeType.MOD],
+        ], this.parseCall)
     }
 
+    /**
+     * Parse a function call expression
+     * @returns The root of the generated subtree
+     */
     private parseCall(): ParseNode {
         let left = this.parseAtom()
         if (this.accept(TokenType.LBRACE)) {
@@ -159,6 +187,11 @@ class Parser {
         return left
     }
 
+    /**
+     * Parse the arguments of a function call, which is a comma-separated list
+     * of expressions
+     * @returns A list of roots of subtrees, one for each argument
+     */
     private parseCallArgs(): ParseNode[] {
         let args: ParseNode[] = []
         let first = true
@@ -172,6 +205,11 @@ class Parser {
         return args
     }
 
+    /**
+     * Parse an expression atom, which can be an identifier, number, string, or
+     * an expression with braces around it
+     * @returns The root of the generated subtree
+     */
     private parseAtom(): ParseNode {
         if (this.accept(TokenType.LBRACE)) {
             this.next()
@@ -192,6 +230,61 @@ class Parser {
         let node = new ParseNode(nodeType, this.cur().content)
         this.next()
         return node
+    }
+
+    /**
+     * Parse a binary operation with left-to-right associativity
+     * @param nodeMap List of token types and matching node types that represent
+     * all operations that need to be parsed
+     * @param subcall The function to call to parse a subexpression, e.g. for
+     * parsing sums this would call a function parsing a product
+     * @param handle A function that is called every time a parse node is
+     * created in this function
+     */
+    private parseBinaryLeft(nodeMap: [TokenType, NodeType][], subcall: () =>
+    ParseNode, handle?: (node: ParseNode) => void): ParseNode {
+        let left = subcall()
+        let foundOp = true
+        while (foundOp) {
+            foundOp = false
+            for (let mapItem of nodeMap) {
+                if (!this.accept(mapItem[0]))
+                    continue
+                foundOp = true
+                this.next()
+                let right = subcall()
+                left = new ParseNode(mapItem[1], "", [left, right])
+                if (handle != undefined)
+                    handle(left)
+                break
+            }
+        }
+        return left
+    }
+
+    /**
+     * Parse a binary operation with right-to-left associativity
+     * @param nodeMap List of token types and matching node types that represent
+     * all operations that need to be parsed
+     * @param subcall The function to call to parse a subexpression, e.g. for
+     * parsing sums this would call a function parsing a product
+     * @param handle A function that is called every time a parse node is
+     * created in this function
+     */
+    private parseBinaryRight(nodeMap: [TokenType, NodeType][], subcall: () =>
+    ParseNode, handle?: (node: ParseNode) => void): ParseNode {
+        let left = subcall()
+        for (let mapItem of nodeMap) {
+            if (!this.accept(mapItem[0]))
+                continue
+            this.next()
+            let right = this.parseBinaryRight(nodeMap, subcall, handle)
+            let parent = new ParseNode(mapItem[1], "", [left, right])
+            if (handle != undefined)
+                handle(parent)
+            return parent
+        }
+        return left
     }
 
     /**
@@ -229,11 +322,8 @@ class Parser {
      * which one type must match
      */
     private expect(type: TokenType | TokenType[]) {
-        if (!(type instanceof Array))
-            type = [type]
-        for (let t of type)
-            if (this.accept(t))
-                return
+        if (this.accept(type))
+            return
         throw Error(`Unexpected token of type ${this.cur().type}, expected `
         + `${type}`)
     }
@@ -243,8 +333,13 @@ class Parser {
      * @param type The type to compare against
      * @returns Whether the current token is of the given type
      */
-    private accept(type: TokenType): boolean {
-        return this.cur().type == type
+    private accept(type: TokenType | TokenType[]): boolean {
+        if (!(type instanceof Array))
+            type = [type]
+        for (let t of type)
+            if (this.accept(t))
+                return true
+        return false
     }
 
 }
