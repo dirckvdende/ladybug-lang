@@ -9,7 +9,7 @@ enum TokenType {
     // Constants
     NUM, STR, TRUE, FALSE,
     // Identifiers and keywords
-    ID, IF, ELSE, WHILE, FUNCTION,
+    ID, IF, ELSE, WHILE, FUNCTION, RETURN,
 
     // Assignment operators
     ASSIGN, ASSIGN_ADD, ASSIGN_SUB, ASSIGN_MUL, ASSIGN_DIV, ASSIGN_MOD,

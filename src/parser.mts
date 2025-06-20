@@ -47,7 +47,8 @@ class Parser {
 
     /**
      * Parse a "line" of code, which can be an if statement, while loop,
-     * expression with a semicolon at the end, function definition
+     * expression with a semicolon at the end, function definition, return
+     * statement
      * @returns The root of the generated subtree
      */
     private parseLine(): ParseNode {
@@ -57,6 +58,8 @@ class Parser {
             return this.parseWhile()
         if (this.accept(TokenType.FUNCTION))
             return this.parseFunction()
+        if (this.accept(TokenType.RETURN))
+            return this.parseReturn()
         let e = this.parseExpr()
         this.expect(TokenType.SEMICOL)
         this.next()
@@ -159,6 +162,19 @@ class Parser {
             this.next()
         }
         return args
+    }
+
+    /**
+     * Parse a return statement with optional returned expression
+     * @returns The root of the generated subtree
+     */
+    private parseReturn(): ParseNode {
+        this.expect(TokenType.RETURN)
+        this.next()
+        let children: ParseNode[] = []
+        if (!this.accept(TokenType.SEMICOL))
+            children.push(this.parseExpr())
+        return new ParseNode(NodeType.RETURN, "", children)
     }
 
     /**

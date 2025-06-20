@@ -10,6 +10,7 @@ const keywords: Record<string, TokenType | undefined> = {
     "function": TokenType.FUNCTION,
     "true": TokenType.TRUE,
     "false": TokenType.FALSE,
+    "return": TokenType.RETURN,
 }
 
 // Mapping of special tokens to their respective token types. If a certain

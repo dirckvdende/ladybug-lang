@@ -18,8 +18,8 @@ enum NodeType {
     EQ, NEQ, LT, LTE, GT, GTE,
 
     // Control flow
-    IF, WHILE,
-    // Function calls (with parameters as children) and function definitions
+    IF, WHILE, RETURN,
+    // Function calls (with parameters as children), function definitions
     CALL, FUNCTION,
     // Code block
     BLOCK,
