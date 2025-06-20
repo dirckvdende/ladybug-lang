@@ -293,20 +293,21 @@ class Ladybug {
     }
 
     /**
-     * Execute an equality comparison node
+     * Execute an equality comparison node, i.e. == or !=
      * @param node The node to execute
      */
     private executeEq(node: ParseNode): ReturnValue {
+        let invert = node.type == NodeType.NEQ
         let left = this.executeNode(node.children[0])
         let right = this.executeNode(node.children[1])
         if (left.type != right.type)
-            return new ReturnValue(ValueType.NUM, "0")
+            return new ReturnValue(ValueType.NUM, invert ? "1" : "0")
         let result = false
         if (left.type == ValueType.NUM)
             result = Number(left.content) == Number(right.content)
         else
             result = left.content == right.content
-        return new ReturnValue(ValueType.NUM, result ? "1" : "0")
+        return new ReturnValue(ValueType.NUM, result != invert ? "1" : "0")
     }
 
     /**
@@ -404,21 +405,3 @@ class Ladybug {
     }
 
 }
-
-let lb = new Ladybug()
-lb.handles.add("print", (x: ReturnValue[]): ReturnValue => {
-    console.log(x[0].content)
-    return new ReturnValue()
-})
-lb.execute(`
-    function fib(x) {
-        if (x > 2) {
-            y = 0;
-            y += fib(x - 1);
-            y += fib(x - 2);
-            return y;
-        }
-        return 1;
-    }
-    print(fib(9));
-`)
