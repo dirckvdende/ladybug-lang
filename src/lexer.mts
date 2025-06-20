@@ -8,6 +8,8 @@ const keywords: Record<string, TokenType | undefined> = {
     "else": TokenType.ELSE,
     "while": TokenType.WHILE,
     "function": TokenType.FUNCTION,
+    "true": TokenType.TRUE,
+    "false": TokenType.FALSE,
 }
 
 // Mapping of special tokens to their respective token types. If a certain

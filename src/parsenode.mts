@@ -10,13 +10,20 @@ enum NodeType {
     ID, NUM, STR,
     // Assignment operators
     ASSIGN, ASSIGN_ADD, ASSIGN_SUB, ASSIGN_MUL, ASSIGN_DIV, ASSIGN_MOD,
-    ADD, SUB, MUL, DIV, MOD,
+    // Arithmetic operators
+    ADD, SUB, MUL, DIV, MOD, NEG,
+    // Logical operators
+    AND, OR, NOT,
+    // Comparison operators
+    EQ, NEQ, LT, LTE, GT, GTE,
+
     // Control flow
     IF, WHILE,
-    // Function calls (with parameters as children)
-    CALL,
+    // Function calls (with parameters as children) and function definitions
+    CALL, FUNCTION,
     // Code block
     BLOCK,
+
     // Error parse node
     ERR,
 

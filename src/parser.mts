@@ -55,6 +55,8 @@ class Parser {
             return this.parseIf()
         if (this.accept(TokenType.WHILE))
             return this.parseWhile()
+        if (this.accept(TokenType.FUNCTION))
+            return this.parseFunction()
         let e = this.parseExpr()
         this.expect(TokenType.SEMICOL)
         this.next()
@@ -119,6 +121,47 @@ class Parser {
     }
 
     /**
+     * Parse a function definition
+     * @returns The root of the generated subtree
+     */
+    private parseFunction(): ParseNode {
+        this.expect(TokenType.FUNCTION)
+        this.next()
+        this.expect(TokenType.ID)
+        let name = this.cur().content
+        this.next()
+        this.expect(TokenType.LBRACE)
+        this.next()
+        let args = this.parseFunctionArgs()
+        this.expect(TokenType.RBRACE)
+        this.next()
+        let block = this.parseLineOrBlock(true)
+        let content = name + "(" + args.join(",") + ")"
+        return new ParseNode(NodeType.FUNCTION, content, [block])
+    }
+
+    /**
+     * Parse the arguments of a function definition, which is a comma-separated
+     * list
+     * @returns The argument names as a list of strings
+     */
+    private parseFunctionArgs(): string[] {
+        let first = true
+        let args: string[] = []
+        while (!this.end() && !this.accept(TokenType.RBRACE)) {
+            if (!first) {
+                this.expect(TokenType.COMMA)
+                this.next()
+            }
+            first = false
+            this.expect(TokenType.ID)
+            args.push(this.cur().content)
+            this.next()
+        }
+        return args
+    }
+
+    /**
      * Parse an expression
      * @returns The root of the generated subtree
      */
@@ -139,10 +182,54 @@ class Parser {
             [TokenType.ASSIGN_MUL, NodeType.ASSIGN_MUL],
             [TokenType.ASSIGN_DIV, NodeType.ASSIGN_DIV],
             [TokenType.ASSIGN_MOD, NodeType.ASSIGN_MOD],
-        ], this.parseSum, (node: ParseNode) => {
+        ], this.parseOr, (node: ParseNode) => {
             if (node.children[0].type != NodeType.ID)
                 throw Error("Assignment requires identifier on the left")
         })
+    }
+    
+    /**
+     * Parse the logical OR operator
+     * @returns The root of the generated subtree
+     */
+    private parseOr(): ParseNode {
+        return this.parseBinaryLeft([
+            [TokenType.OR, NodeType.OR],
+        ], this.parseAnd)
+    }
+
+    /**
+     * Parse the logical AND operator
+     * @returns The root of the generated subtree
+     */
+    private parseAnd(): ParseNode {
+        return this.parseBinaryLeft([
+            [TokenType.AND, NodeType.AND],
+        ], this.parseEq)
+    }
+
+    /**
+     * Parse equality operators "==" and "!="
+     * @returns The root of the generated subtree
+     */
+    private parseEq(): ParseNode {
+        return this.parseBinaryLeft([
+            [TokenType.EQ, NodeType.EQ],
+            [TokenType.NEQ, NodeType.NEQ],
+        ], this.parseIneq)
+    }
+
+    /**
+     * Parse inequality operators "<", "<=", ">", and ">="
+     * @returns The root of the generated subtree
+     */
+    private parseIneq(): ParseNode {
+        return this.parseBinaryLeft([
+            [TokenType.LT, NodeType.LT],
+            [TokenType.LTE, NodeType.LTE],
+            [TokenType.GT, NodeType.GT],
+            [TokenType.GTE, NodeType.GTE],
+        ], this.parseSum)
     }
 
     /**
@@ -165,7 +252,23 @@ class Parser {
             [TokenType.MUL, NodeType.MUL],
             [TokenType.DIV, NodeType.DIV],
             [TokenType.MOD, NodeType.MOD],
-        ], this.parseCall)
+        ], this.parseUnary)
+    }
+
+    /**
+     * Parse unary operators "!" and "-"
+     * @returns The root of the generated subtree
+     */
+    private parseUnary(): ParseNode {
+        if (this.accept(TokenType.NOT)) {
+            this.next()
+            return new ParseNode(NodeType.NOT, "", [this.parseUnary()])
+        }
+        if (this.accept(TokenType.SUB)) {
+            this.next()
+            return new ParseNode(NodeType.NEG, "", [this.parseUnary()])
+        }
+        return this.parseCall()
     }
 
     /**
@@ -206,8 +309,8 @@ class Parser {
     }
 
     /**
-     * Parse an expression atom, which can be an identifier, number, string, or
-     * an expression with braces around it
+     * Parse an expression atom, which can be an identifier, number, string,
+     * constant or an expression with braces around it
      * @returns The root of the generated subtree
      */
     private parseAtom(): ParseNode {
@@ -218,7 +321,13 @@ class Parser {
             this.next()
             return e
         }
-        this.expect([TokenType.ID, TokenType.NUM, TokenType.STR])
+        this.expect([TokenType.ID, TokenType.NUM, TokenType.STR, TokenType.TRUE,
+        TokenType.FALSE])
+        if (this.accept([TokenType.TRUE, TokenType.FALSE])) {
+            let content = this.accept(TokenType.TRUE) ? "1" : "0"
+            this.next()
+            return new ParseNode(NodeType.NUM, content, [])
+        }
         let tokenType = this.cur().type
         let nodeType: NodeType
         if (tokenType == TokenType.ID)

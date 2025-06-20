@@ -7,7 +7,7 @@ export { TokenType, Token }
 enum TokenType {
 
     // Constants
-    NUM, STR,
+    NUM, STR, TRUE, FALSE,
     // Identifiers and keywords
     ID, IF, ELSE, WHILE, FUNCTION,
 
