@@ -174,6 +174,8 @@ class Parser {
         let children: ParseNode[] = []
         if (!this.accept(TokenType.SEMICOL))
             children.push(this.parseExpr())
+        this.expect(TokenType.SEMICOL)
+        this.next()
         return new ParseNode(NodeType.RETURN, "", children)
     }
 

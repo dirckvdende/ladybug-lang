@@ -320,8 +320,8 @@ lb.handles.add("print", (x: ReturnValue[]): ReturnValue => {
 lb.execute(`
     function fib(x) {
         if (x > 2)
-            return fib(x - 1) + fib(x - 2)
-        return 1
+            return fib(x - 1) + fib(x - 2);
+        return 1;
     }
     print(fib(9));
 `)
