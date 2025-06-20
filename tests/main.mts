@@ -23,9 +23,11 @@ for (let file of fs.readdirSync("./testfiles")) {
     let content = fs.readFileSync(`./testfiles/${file}`, { encoding: "utf-8" })
     let lb = new Ladybug()
     let success = true
+    let index = 0
     lb.handles.add("assert", (args: ReturnValue[]): ReturnValue => {
+        index++
         if (!assertWrapper(args)) {
-            console.log("Failed assertion!")
+            console.log(`Failed assertion #${index}`)
             success = false
         }
         return new ReturnValue()
