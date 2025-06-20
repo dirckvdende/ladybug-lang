@@ -1,0 +1,16 @@
+
+function fib(x) {
+    a = 1;
+    b = 1;
+    while (x > 2) {
+        t = a + b;
+        a = b;
+        b = t;
+        x -= 1;
+    }
+    return b;
+}
+
+x = 10;
+assert(fib(x) == 55);
+assert(x == 10);
