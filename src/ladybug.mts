@@ -205,13 +205,34 @@ class Ladybug {
      * @param node The node to execute
      */
     private executeAssign(node: ParseNode): ReturnValue {
-        // TODO: Compound assignments
+        if (node.type != NodeType.ASSIGN)
+            return this.executeCompoundAssign(node)
         let varName = node.children[0].content
         if (this.handles.has(varName))
             throw Error(`The name ${varName} is reserved by a handle`)
         let right = this.executeNode(node.children[1])
         this.callStack.set(varName, right)
         return right
+    }
+
+    private executeCompoundAssign(node: ParseNode): ReturnValue {
+        let varName = node.children[0].content
+        let left = this.callStack.get(varName)
+        let right = this.executeNode(node.children[1])
+        if (node.type == NodeType.ASSIGN_ADD && (left.type == ValueType.STR ||
+        right.type == ValueType.STR)) {
+            if (left.type != ValueType.STR || right.type == ValueType.STR)
+                throw Error("Cannot concatenate non-string and string")
+            return new ReturnValue(ValueType.STR, left.content + right.content)
+        }
+        if (left.type != ValueType.NUM || right.type != ValueType.NUM)
+            throw Error("Cannot perform arithmatic on non-number type")
+        let op = this.nodeToBinaryOp(node.type)
+        let x = Number(left.content)
+        let y = Number(right.content)
+        let ret = new ReturnValue(ValueType.NUM, String(op(x, y)))
+        this.callStack.set(varName, ret)
+        return ret
     }
 
     /**
@@ -303,29 +324,41 @@ class Ladybug {
         }
         if (left.type != ValueType.NUM || right.type != ValueType.NUM)
             throw Error("Cannot perform arithmatic on non-number type")
-        let op: (x: number, y: number) => number
-        switch (node.type) {
-            case NodeType.ADD:
-                op = (x, y) => x + y
-                break
-            case NodeType.SUB:
-                op = (x, y) => x - y
-                break
-            case NodeType.MUL:
-                op = (x, y) => x * y
-                break
-            case NodeType.DIV:
-                op = (x, y) => x / y
-                break
-            case NodeType.MOD:
-                op = (x, y) => x % y
-                break
-            default:
-                op = () => 0
-        }
+        let op = this.nodeToBinaryOp(node.type)
         let x = Number(left.content)
         let y = Number(right.content)
         return new ReturnValue(ValueType.NUM, String(op(x, y)))
+    }
+
+    /**
+     * Get a binary arithmetic operation node type (can be both ADD and
+     * ASSIGN_ADD, for example) and get the operation to be performed on two
+     * numbers returning a new number. Note that the case for strings needs to
+     * be handled separately. Throws an error if node type is invalid
+     * @param type The type of the node, referring to the operation to be
+     * performed
+     * @returns A binary arithmetic function based on the node type
+     */
+    private nodeToBinaryOp(type: NodeType): ((x: number, y: number) => number) {
+        switch (type) {
+            case NodeType.ADD:
+            case NodeType.ASSIGN_ADD:
+                return (x, y) => x + y
+            case NodeType.SUB:
+            case NodeType.ASSIGN_SUB:
+                return (x, y) => x - y
+            case NodeType.MUL:
+            case NodeType.ASSIGN_MUL:
+                return (x, y) => x * y
+            case NodeType.DIV:
+            case NodeType.ASSIGN_DIV:
+                return (x, y) => x / y
+            case NodeType.MOD:
+            case NodeType.ASSIGN_MOD:
+                return (x, y) => x % y
+            default:
+                throw Error(`Unexpected node type ${type}`)
+        }
     }
 
     /**
@@ -379,8 +412,12 @@ lb.handles.add("print", (x: ReturnValue[]): ReturnValue => {
 })
 lb.execute(`
     function fib(x) {
-        if (x > 2)
-            return fib(x - 1) + fib(x - 2);
+        if (x > 2) {
+            y = 0;
+            y += fib(x - 1);
+            y += fib(x - 2);
+            return y;
+        }
         return 1;
     }
     print(fib(9));
