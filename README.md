@@ -61,7 +61,7 @@ function fib(x) {
 
 Return from a function with some value or end the program if not inside a function. See the example above.
 
-## Calling the compiler
+## Calling the interpreter
 
 The `src` directory inside this project contains the file `ladybug.mts`. When working with ladybug you should (most of the time) import the following from the file:
 
