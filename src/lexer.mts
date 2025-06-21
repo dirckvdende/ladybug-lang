@@ -34,6 +34,8 @@ const specialTokens: Record<string, TokenType | undefined> = {
     "<": TokenType.LT, "<=": TokenType.LTE,
     ">": TokenType.GT, ">=": TokenType.GTE,
     ",": TokenType.COMMA,
+    // Comments
+    "//": TokenType.ERR, "/*": TokenType.ERR,
 }
 
 /**
@@ -108,7 +110,7 @@ class Lexer {
 
     /**
      * Read a special token, such as a semicolon or brace. Throws an error if
-     * no token could be read
+     * no token could be read. This function also comments starting with "//"
      */
     private readSpecialToken() {
         let content = ""
@@ -116,10 +118,41 @@ class Lexer {
             content += this.next()
         if (content == "")
             throw Error(`Unexpected character ${this.cur()}`)
+        if (content == "//") {
+            this.readLineComment()
+            return
+        }
+        if (content == "/*") {
+            this.readMultilineComment()
+            return
+        }
         let type = specialTokens[content]!
         if (type == TokenType.ERR)
             throw Error(`Undefined token ${content}`)
         this.tokens.push(new Token(type, ""))
+    }
+
+    /**
+     * Read an end-of-line comment starting from just after "//". No tokens are
+     * added
+     */
+    private readLineComment() {
+        while (!this.end() && this.cur() != "\n")
+            this.next()
+        this.next()
+    }
+
+    /**
+     * Read a multiline comment starting from just after "/*". No tokens are
+     * added
+     */
+    private readMultilineComment() {
+        let last = ""
+        while (last != "*" || this.cur() != "/") {
+            last = this.cur()
+            this.next()
+        }
+        this.next()
     }
 
     /**

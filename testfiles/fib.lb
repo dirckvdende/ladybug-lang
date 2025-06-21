@@ -1,5 +1,6 @@
 
 function fib(x) {
+    // If more than 2, recursive definition
     if (x > 2)
         return fib(x - 1) + fib(x - 2);
     return 1;
