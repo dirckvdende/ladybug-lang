@@ -8,25 +8,27 @@ import { Loc } from "./loc.mjs"
 enum TokenType {
 
     // Constants
-    NUM, STR, TRUE, FALSE,
+    NUM = "NUM", STR = "STR", TRUE = "TRUE", FALSE = "FALSE",
     // Identifiers and keywords
-    ID, IF, ELSE, WHILE, FUNCTION, RETURN,
+    ID = "ID", IF = "IF", ELSE = "ELSE", WHILE = "WHILE", FUNCTION = "FUNCTION",
+    RETURN = "RETURN",
 
     // Assignment operators
-    ASSIGN, ASSIGN_ADD, ASSIGN_SUB, ASSIGN_MUL, ASSIGN_DIV, ASSIGN_MOD,
+    ASSIGN = "=", ASSIGN_ADD = "+=", ASSIGN_SUB = "-=", ASSIGN_MUL = "*=",
+    ASSIGN_DIV = "/=", ASSIGN_MOD = "%=",
     // Delimiters
-    COMMA, SEMICOL,
+    COMMA = ",", SEMICOL = ";",
     // Braces
-    LCBRACE, RCBRACE, LBRACE, RBRACE,
+    LCBRACE = "{", RCBRACE = "}", LBRACE = "(", RBRACE = ")",
     // Arithmetic operators
-    ADD, SUB, MUL, DIV, MOD,
+    ADD = "+", SUB = "-", MUL = "*", DIV = "/", MOD = "%",
     // Logical operators
-    AND, OR, NOT,
+    AND = "&&", OR = "||", NOT = "!",
     // Comparison operators
-    EQ, NEQ, LT, LTE, GT, GTE,
+    EQ = "==", NEQ = "!=", LT = "<", LTE = "<=", GT = ">", GTE = ">=",
 
     // Error token
-    ERR,
+    ERR = "ERR",
 
 }
 
