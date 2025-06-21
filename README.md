@@ -25,7 +25,7 @@ Each line of code can be either an expression followed by a semicolon (`;`) or o
 
 Which can also have an else, such as in the following example. The curly braces `{}` are optional if there is only a single line of code inside one of the blocks.
 
-```
+```js
 if (x > 3) {
     y = 6;
     x = 4;
@@ -40,7 +40,7 @@ if (x > 3) {
 
 Again curly braces only necessary if there is a single line of code inside the loop body.
 
-```
+```js
 while (x > 3)
     x -= 1;
 ```
@@ -49,7 +49,7 @@ while (x > 3)
 
 A function can be defined with zero or more arguments as follows:
 
-```
+```js
 function fib(x) {
     if (x > 2)
         return fib(x - 1) + fib(x - 2);
