@@ -1,5 +1,6 @@
 
 export { Lexer }
+import { Loc } from "./loc.mjs"
 import { Token, TokenType } from "./token.mjs"
 
 // Mapping of keywords to their token types
@@ -49,6 +50,8 @@ class Lexer {
     private text: string = ""
     // Current position in the input string
     private pos: number = 0
+    // Curent location in the input
+    private loc: Loc = new Loc(1, 1)
 
     /**
      * Constructor
@@ -87,9 +90,9 @@ class Lexer {
             content += this.next()
         let token: Token
         if (keywords[content] != undefined)
-            token = new Token(keywords[content]!)
+            token = new Token(keywords[content]!, "", this.loc)
         else
-            token = new Token(TokenType.ID, content)
+            token = new Token(TokenType.ID, content, this.loc)
         this.tokens.push(token)
     }
 
@@ -105,7 +108,7 @@ class Lexer {
                 foundDot = true
             content += this.next()
         }
-        this.tokens.push(new Token(TokenType.NUM, content))
+        this.tokens.push(new Token(TokenType.NUM, content, this.loc))
     }
 
     /**
@@ -117,7 +120,8 @@ class Lexer {
         while (!this.end() && specialTokens[content + this.cur()] != undefined)
             content += this.next()
         if (content == "")
-            throw Error(`Unexpected character ${this.cur()}`)
+            throw Error(`Unexpected character ${this.cur()} at ` +
+            `${this.loc.str()}`)
         if (content == "//") {
             this.readLineComment()
             return
@@ -128,8 +132,8 @@ class Lexer {
         }
         let type = specialTokens[content]!
         if (type == TokenType.ERR)
-            throw Error(`Undefined token ${content}`)
-        this.tokens.push(new Token(type, ""))
+            throw Error(`Undefined token ${content} at ${this.loc.str()}`)
+        this.tokens.push(new Token(type, "", this.loc))
     }
 
     /**
@@ -174,7 +178,7 @@ class Lexer {
         }
         if (this.end())
             throw Error("String not closed before end of file")
-        this.tokens.push(new Token(TokenType.STR, content))
+        this.tokens.push(new Token(TokenType.STR, content, this.loc))
     }
 
     /**
@@ -217,6 +221,12 @@ class Lexer {
     private next(): string {
         let r = this.cur()
         this.pos += 1
+        if (r == "\n")
+            this.loc = new Loc(this.loc.line + 1, 1)
+        else
+            this.loc = new Loc(this.loc.line, this.loc.col + 1)
+        if (this.end())
+            this.loc = new Loc()
         return r
     }
 

@@ -1,4 +1,4 @@
-
+import { Loc } from "./loc.mjs"
 export { ParseNode, NodeType }
 
 /**
@@ -40,6 +40,8 @@ class ParseNode {
     content: string
     // Parse node children
     children: ParseNode[]
+    // Location of the parse node
+    loc: Loc
 
     /**
      * Constructor
@@ -47,11 +49,14 @@ class ParseNode {
      * @param content The content of the parse node (default empty)
      * @param children The children of the parse node (default empty array).
      * Array will always be copied (shallow copy)
+     * @param loc Location of the parse node (default unknown)
      */
-    constructor(type: NodeType, content?: string, children?: ParseNode[]) {
+    constructor(type: NodeType, content?: string, children?: ParseNode[], loc?:
+    Loc) {
         this.type = type
         this.content = content ?? ""
         this.children = children == undefined ? [] : children.slice()
+        this.loc = loc ?? new Loc()
     }
 
 }

@@ -1,5 +1,6 @@
 
 export { TokenType, Token }
+import { Loc } from "./loc.mjs"
 
 /**
  * The type of a token prodcued by the lexer
@@ -39,15 +40,18 @@ class Token {
     type: TokenType
     // Token content, empty by default
     content: string
+    // Location of the token, defaults to unknown
+    loc: Loc
 
     /**
      * Constructor
      * @param type The type of the token
      * @param content The content of the token (default empty)
      */
-    constructor(type: TokenType, content?: string) {
+    constructor(type: TokenType, content?: string, loc?: Loc) {
         this.type = type
         this.content = content ?? ""
+        this.loc = new Loc(loc?.line, loc?.col)
     }
 
 }

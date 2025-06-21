@@ -99,7 +99,7 @@ class Ladybug {
             case NodeType.NOT:
                 return this.executeNot(node)
             default:
-                throw Error("Unimplemented")
+                throw Error(`Unimplemented operation at ${node.loc.str()}`)
         }
     }
 
@@ -140,7 +140,8 @@ class Ladybug {
     private registerFunction(node: ParseNode) {
         let name = node.content.split("(", 1)[0]
         if (this.handles.has(name))
-            throw Error(`The name ${name} is reserved by a handle`)
+            throw Error(`The name ${name} is reserved by a handle, at ` +
+            `${node.loc.str()}`)
         this.callStack.set(name, node)
     }
 
@@ -151,13 +152,15 @@ class Ladybug {
     private executeCall(node: ParseNode): ReturnValue {
         if (this.handles.has(node.content))
             return this.executeHandleCall(node)
-        let func = this.callStack.get(node.content)
+        let func = this.callStack.get(node.content, node.loc)
         if (!(func instanceof ParseNode))
-            throw Error(`${node.content} is not a function`)
+            throw Error(`${node.content} is not a function, at ` +
+            `${node.loc.str()}`)
         let paramNames = func.content.split("(")[1].slice(0, -1).split(",")
         let params = node.children
         if (paramNames.length != params.length)
-            throw Error("Number of parameters does not match expected number")
+            throw Error("Number of parameters does not match expected number" +
+            ` at ${node.loc.str()}`)
         let values: ReturnValue[] = []
         for (let param of params)
             values.push(this.executeNode(param))
@@ -165,7 +168,8 @@ class Ladybug {
         // Set up parameter values
         for (let i = 0; i < params.length; i++) {
             if (values[i] instanceof ParseNode)
-                throw Error("Cannot pass a function as a parameter")
+                throw Error("Cannot pass a function as a parameter at " +
+                `${node.loc.str()}`)
             this.callStack.set(paramNames[i], values[i])
         }
         // Call function body
@@ -209,7 +213,8 @@ class Ladybug {
             return this.executeCompoundAssign(node)
         let varName = node.children[0].content
         if (this.handles.has(varName))
-            throw Error(`The name ${varName} is reserved by a handle`)
+            throw Error(`The name ${varName} is reserved by a handle, at ` +
+            `${node.loc.str()}`)
         let right = this.executeNode(node.children[1])
         this.callStack.set(varName, right)
         return right
@@ -217,16 +222,18 @@ class Ladybug {
 
     private executeCompoundAssign(node: ParseNode): ReturnValue {
         let varName = node.children[0].content
-        let left = this.callStack.get(varName)
+        let left = this.callStack.get(varName, node.loc)
         let right = this.executeNode(node.children[1])
         if (node.type == NodeType.ASSIGN_ADD && (left.type == ValueType.STR ||
         right.type == ValueType.STR)) {
             if (left.type != ValueType.STR || right.type == ValueType.STR)
-                throw Error("Cannot concatenate non-string and string")
+                throw Error("Cannot concatenate non-string and string at " +
+                `${node.loc.str()}`)
             return new ReturnValue(ValueType.STR, left.content + right.content)
         }
         if (left.type != ValueType.NUM || right.type != ValueType.NUM)
-            throw Error("Cannot perform arithmatic on non-number type")
+            throw Error("Cannot perform arithmatic on non-number type at " +
+            `${node.loc.str()}`)
         let op = this.nodeToBinaryOp(node.type)
         let x = Number(left.content)
         let y = Number(right.content)
@@ -286,7 +293,7 @@ class Ladybug {
         let left = this.executeNode(node.children[0])
         let right = this.executeNode(node.children[1])
         if (left.type != ValueType.NUM || right.type != ValueType.NUM)
-            throw Error("Cannot compare non-numeric types")
+            throw Error(`Cannot compare non-numeric types at ${node.loc.str()}`)
         let x = Number(left.content)
         let y = Number(right.content)
         return new ReturnValue(ValueType.NUM, comp(x, y) ? "1" : "0")
@@ -320,11 +327,13 @@ class Ladybug {
         if (node.type == NodeType.ADD && (left.type == ValueType.STR ||
         right.type == ValueType.STR)) {
             if (left.type != ValueType.STR || right.type != ValueType.STR)
-                throw Error("Cannot concatenate non-string and string")
+                throw Error("Cannot concatenate non-string and string at " +
+                `${node.loc.str()}`)
             return new ReturnValue(ValueType.STR, left.content + right.content)
         }
         if (left.type != ValueType.NUM || right.type != ValueType.NUM)
-            throw Error("Cannot perform arithmatic on non-number type")
+            throw Error("Cannot perform arithmatic on non-number type at " +
+            `${node.loc.str()}`)
         let op = this.nodeToBinaryOp(node.type)
         let x = Number(left.content)
         let y = Number(right.content)
@@ -358,7 +367,8 @@ class Ladybug {
             case NodeType.ASSIGN_MOD:
                 return (x, y) => x % y
             default:
-                throw Error(`Unexpected node type ${type}`)
+                throw Error(`Unexpected node type ${type}, something went ` +
+                `wrong`)
         }
     }
 
@@ -369,7 +379,7 @@ class Ladybug {
     private executeNeg(node: ParseNode): ReturnValue {
         let child = this.executeNode(node.children[0])
         if (child.type != ValueType.NUM)
-            throw Error("Cannot negate non-numeric type")
+            throw Error(`Cannot negate non-numeric type at ${node.loc.str()}`)
         return new ReturnValue(ValueType.NUM, String(-Number(child.content)))
     }
 
@@ -380,17 +390,17 @@ class Ladybug {
     private executeAtom(node: ParseNode): ReturnValue {
         switch (node.type) {
             case NodeType.ID:
-                let value = this.callStack.get(node.content)
+                let value = this.callStack.get(node.content, node.loc)
                 if (!(value instanceof ReturnValue))
                     throw Error("Cannot use function in expression without " +
-                    "calling it")
+                    `calling it, at ${node.loc.str()}`)
                 return value
             case NodeType.NUM:
                 return new ReturnValue(ValueType.NUM, node.content)
             case NodeType.STR:
                 return new ReturnValue(ValueType.STR, node.content)
             default:
-                throw Error("Unexpected node type")
+                throw Error(`Unexpected node type at ${node.loc.str()}`)
         }
     }
 

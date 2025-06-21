@@ -3,6 +3,7 @@ export { CallStack }
 import { ParseNode } from "./parsenode.mjs"
 import { ReturnValue } from "./returnvalue.mjs"
 import { Dict } from "./dict.mjs"
+import { Loc } from "./loc.mjs"
 
 /**
  * A call stack of frames, each with variables names and functions with their
@@ -40,13 +41,19 @@ class CallStack<T = ReturnValue | ParseNode> {
      * Get the value of a variable from the topmost frame it occurs in. If no
      * frame contains the variable an error is thrown
      * @param name The name of the variable
+     * @param loc The location where the variable is requested, which will be
+     * included in the error message if given
      * @returns The value of the variable
      */
-    get(name: string): T {
+    get(name: string, loc?: Loc): T {
         for (let i = this.frames.length - 1; i >= 0; i--)
             if (this.frames[i].has(name))
                 return this.frames[i].get(name)
-        throw Error(`Name ${name} was not defined in this context`)
+        if (loc == undefined)
+            throw Error(`Name ${name} was not defined in this context`)
+        else
+            throw Error(`Name ${name} was not defined in this context, at ` +
+            `${loc.str()}`)
     }
 
     /**
